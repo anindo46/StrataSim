@@ -11,17 +11,17 @@ st.set_page_config(page_title="StrataSim", layout="wide", page_icon="🪨")
 
 # Sidebar settings
 st.sidebar.title("⚙️ Settings")
-st.sidebar.info("StrataSim is a smart tool to create, visualize, and export stratigraphic columns.")
+st.sidebar.info("StrataSim helps create, visualize, and export stratigraphic columns.")
 st.sidebar.markdown("---")
-theme = st.sidebar.selectbox("Theme Mode (visual only)", ["Light", "Dark"])
+theme = st.sidebar.selectbox("Theme Mode", ["Light", "Dark"])
 st.sidebar.markdown("---")
 st.sidebar.markdown("📘 Need help? Click below")
 with st.sidebar.expander("ℹ️ How to Use"):
     st.markdown("""
-    1. Go to 📝 Input tab and add layers.
-    2. Go to 📊 Column tab to see the diagram.
-    3. Use 📄 Export to save as PNG or CSV.
-    4. Or 📁 Upload CSV to batch-import layers.
+    1. Add or edit layers in the 📝 Input tab.
+    2. View and manage them in 📊 Column tab.
+    3. Export results from 📄 Export tab.
+    4. Upload CSV data in 📁 Upload CSV tab.
     """)
 
 if theme == "Dark":
@@ -55,7 +55,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "�
 
 with tab1:
     st.subheader("Add or Edit a Stratigraphic Layer")
-    selected_index = st.selectbox("Select a layer to edit or delete (optional)", options=["None"] + [f"Layer {i+1}: {l['Lithology']} ({l['Thickness']}m)" for i, l in enumerate(st.session_state.layers)])
+    selected_index = st.selectbox("Select a layer to edit or delete", options=["None"] + [f"Layer {i+1}: {l['Lithology']} ({l['Thickness']}m)" for i, l in enumerate(st.session_state.layers)])
     selected_layer = None
     if selected_index != "None":
         idx = int(selected_index.split()[1][:-1]) - 1
@@ -112,20 +112,38 @@ with tab2:
         df = pd.DataFrame(st.session_state.layers)
         st.dataframe(df)
 
-        fig, ax = plt.subplots(figsize=(4, 10))
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            fig, ax = plt.subplots(figsize=(4, 10))
+            y = 0
+            for i, row in df[::-1].iterrows():
+                rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
+                ax.add_patch(rect)
+                ax.text(0.5, y + row['Thickness']/2, row['Lithology'], ha='center', va='center', fontsize=8)
+                y += row['Thickness']
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, y)
+            ax.axis('off')
+            st.pyplot(fig)
+
+        with col2:
+            for i, layer in enumerate(df[::-1].to_dict(orient="records")):
+                st.markdown(f"**Layer {len(df)-i}:** {layer['Lithology']} ({layer['Thickness']}m)")
+                if st.button(f"❌ Delete Layer {len(df)-i}"):
+                    del st.session_state.layers[len(df)-i-1]
+                    st.experimental_rerun()
+
+        # Mini column preview
+        fig_small, ax_small = plt.subplots(figsize=(2, 4))
         y = 0
         for _, row in df[::-1].iterrows():
-            rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
-            ax.add_patch(rect)
-            ax.text(0.5, y + row['Thickness']/2, row['Lithology'], ha='center', va='center', fontsize=8)
+            ax_small.add_patch(Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], '')))
             y += row['Thickness']
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, y)
-        ax.axis('off')
-        st.pyplot(fig)
-
-        legend_patches = [Patch(facecolor='white', hatch=pat, label=lit) for lit, pat in lithology_patterns.items()]
-        st.pyplot(plt.figure(figsize=(4, 1)))
+        ax_small.set_xlim(0, 1)
+        ax_small.set_ylim(0, y)
+        ax_small.axis('off')
+        st.markdown("### 🔍 Mini Column Preview")
+        st.pyplot(fig_small)
 
 with tab3:
     st.subheader("Export Options")
