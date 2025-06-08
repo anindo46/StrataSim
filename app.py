@@ -63,10 +63,9 @@ tabs = st.tabs(tab_names)
 tab1, tab2, tab3, tab4 = tabs
 
 # Show redirect button if just uploaded
+# Removed auto-switch (deprecated). Use message below instead.
 if st.session_state.get('uploaded'):
-    st.toast("Click '📊 Column' tab to view your data.", icon="✅")
-    if st.button("➡️ Go to Column Tab"):
-        st.switch_page("Column")
+    st.info("✅ Layers added! Use the 📊 Column tab above to view your stratigraphy.")
 
 # Manual tab-switch button
 if 'uploaded' not in st.session_state:
