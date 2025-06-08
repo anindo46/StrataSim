@@ -40,6 +40,8 @@ st.caption("Build, interpret, and export stratigraphic sections with accuracy an
 
 if 'layers' not in st.session_state:
     st.session_state['layers'] = []
+if 'selected_index' not in st.session_state:
+    st.session_state['selected_index'] = None
 
 lithology_patterns = {
     "Sandstone": "////",
@@ -52,23 +54,30 @@ lithology_patterns = {
 tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
 
 with tab1:
-    st.subheader("Add a Stratigraphic Layer")
+    st.subheader("Add or Edit a Stratigraphic Layer")
+    selected_index = st.selectbox("Select a layer to edit or delete (optional)", options=["None"] + [f"Layer {i+1}: {l['Lithology']} ({l['Thickness']}m)" for i, l in enumerate(st.session_state.layers)])
+    selected_layer = None
+    if selected_index != "None":
+        idx = int(selected_index.split()[1][:-1]) - 1
+        selected_layer = st.session_state.layers[idx]
+        st.session_state['selected_index'] = idx
+    else:
+        st.session_state['selected_index'] = None
+
     with st.form("layer_form"):
         col1, col2 = st.columns(2)
         with col1:
-            lithology = st.selectbox("Lithology", list(lithology_patterns.keys()))
-            color = st.color_picker("Color")
-            grain_size = st.selectbox("Grain Size", ["Fine", "Medium", "Coarse"])
+            lithology = st.selectbox("Lithology", list(lithology_patterns.keys()), index=list(lithology_patterns.keys()).index(selected_layer['Lithology']) if selected_layer else 0)
+            color = st.color_picker("Color", value=selected_layer['Color'] if selected_layer else "#c2c2c2")
+            grain_size = st.selectbox("Grain Size", ["Fine", "Medium", "Coarse"], index=["Fine", "Medium", "Coarse"].index(selected_layer['Grain Size']) if selected_layer else 0)
         with col2:
-            thickness = st.number_input("Thickness (m)", min_value=0.1, step=0.1)
-            fossils = st.text_input("Fossils")
-            notes = st.text_area("Notes")
+            thickness = st.number_input("Thickness (m)", min_value=0.1, step=0.1, value=selected_layer['Thickness'] if selected_layer else 1.0)
+            fossils = st.text_input("Fossils", value=selected_layer['Fossils'] if selected_layer else "")
+            notes = st.text_area("Notes", value=selected_layer['Notes'] if selected_layer else "")
 
-        submitted = st.form_submit_button("➕ Add Layer")
-
-        if submitted:
+        if st.form_submit_button("💾 Save Layer"):
             environment = "Marine" if lithology in ["Shale", "Limestone"] else "Fluvial/Deltaic"
-            st.session_state.layers.append({
+            new_layer = {
                 'Lithology': lithology,
                 'Color': color,
                 'Grain Size': grain_size,
@@ -76,12 +85,23 @@ with tab1:
                 'Fossils': fossils,
                 'Environment': environment,
                 'Notes': notes
-            })
-            st.success("✅ Layer added successfully!")
-            st.markdown("⬆️ Check the '📊 Column' tab to view the updated stratigraphy.")
+            }
+            if st.session_state['selected_index'] is not None:
+                st.session_state.layers[st.session_state['selected_index']] = new_layer
+                st.success("✅ Layer updated successfully!")
+            else:
+                st.session_state.layers.append(new_layer)
+                st.success("✅ Layer added successfully!")
+
+    if st.session_state['selected_index'] is not None:
+        if st.button("🗑️ Delete Selected Layer"):
+            del st.session_state.layers[st.session_state['selected_index']]
+            st.session_state['selected_index'] = None
+            st.success("❌ Layer deleted.")
 
     if st.button("🧹 Clear All Layers"):
         st.session_state.layers = []
+        st.session_state['selected_index'] = None
         st.warning("All layers have been cleared.")
 
 with tab2:
