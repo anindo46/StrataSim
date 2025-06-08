@@ -99,10 +99,8 @@ with tab2:
         selected_row = st.selectbox("Select a row to delete", df.index.tolist(), format_func=lambda i: f"{df.loc[i, 'Lithology']} ({df.loc[i, 'Thickness']}m)")
         if st.button("❌ Delete Selected Row"):
             st.session_state.layers.pop(selected_row)
-            st.success("Selected layer deleted.")
-            st.experimental_rerun()
-        fig, ax = plt.subplots(figsize=(4, 10))
-        y = 0
+            st.success("Selected layer deleted. Scroll to refresh view.")
+            y = 0
         for _, row in df[::-1].iterrows():
             rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
             ax.add_patch(rect)
