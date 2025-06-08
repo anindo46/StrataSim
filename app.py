@@ -58,8 +58,16 @@ facies_legend = {
 }
 
 # Tabs
-with st.container():
-    tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
+tab_names = ["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"]
+tabs = st.tabs(tab_names)
+tab1, tab2, tab3, tab4 = tabs
+
+# Handle query param for auto-tab switch
+params = st.experimental_get_query_params()
+if "tab" in params and params["tab"][0] in [name.split()[1] for name in tab_names]:
+    tab_index = [name.split()[1] for name in tab_names].index(params["tab"][0])
+    st.experimental_set_query_params()  # Clear it
+    st.experimental_rerun()
 
 with tab4:
     st.subheader("📁 Upload Stratigraphy Data (CSV or Excel)")
@@ -101,7 +109,6 @@ with tab4:
                         })
                     st.success("✅ Layers successfully added from uploaded file!")
                     st.experimental_set_query_params(tab="Column")
-                    st.experimental_rerun()
             else:
                 st.error(f"❌ Missing required columns. Please include: {required_columns}")
         except Exception as e:
@@ -112,7 +119,7 @@ st.markdown("""
 ---
 **Developed by Anindo Paul Sourav**  
 _Student, Geology and Mining, University of Barishal_  
-📧 Email: anindo.glm@gmail.com  
-🌐 [Portfolio](https://anindo46.github.io/portfolio/)  
-🐙 [GitHub](https://github.com/anindo46)
+📧 Email: [anindo.glm@gmail.com](mailto:anindo.glm@gmail.com)  
+🌐 [Portfolio](https://anindo.netlify.app)  
+🐙 [GitHub](https://github.com/anindosourav)
 """)
