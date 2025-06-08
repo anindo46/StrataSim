@@ -60,6 +60,75 @@ facies_legend = {
 # Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
 
+with tab1:
+    st.subheader("📝 Add Stratigraphic Layer")
+    with st.form("add_layer_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            lithology = st.selectbox("Lithology", list(lithology_patterns.keys()))
+            color = st.color_picker("Color")
+            grain_size = st.selectbox("Grain Size", ["Fine", "Medium", "Coarse"])
+        with col2:
+            thickness = st.number_input("Thickness (m)", min_value=0.1, step=0.1)
+            fossils = st.text_input("Fossils")
+            notes = st.text_area("Notes")
+
+        if st.form_submit_button("➕ Add Layer"):
+            environment = "Marine" if lithology in ["Shale", "Limestone"] else "Fluvial/Deltaic"
+            st.session_state.layers.append({
+                'Lithology': lithology,
+                'Color': color,
+                'Grain Size': grain_size,
+                'Thickness': thickness,
+                'Fossils': fossils,
+                'Environment': environment,
+                'Notes': notes
+            })
+            st.success("Layer added successfully.")
+
+with tab2:
+    st.subheader("📊 Stratigraphic Column")
+    if not st.session_state.layers:
+        st.warning("No layers added yet.")
+    else:
+        df = pd.DataFrame(st.session_state.layers)
+        st.dataframe(df)
+        fig, ax = plt.subplots(figsize=(4, 10))
+        y = 0
+        for _, row in df[::-1].iterrows():
+            rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
+            ax.add_patch(rect)
+            ax.text(0.5, y + row['Thickness']/2, row['Lithology'], ha='center', va='center', fontsize=8)
+            y += row['Thickness']
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, y)
+        ax.axis('off')
+        st.pyplot(fig)
+
+with tab3:
+    st.subheader("📄 Export Options")
+    if not st.session_state.layers:
+        st.warning("Add layers to enable export.")
+    else:
+        df = pd.DataFrame(st.session_state.layers)
+        fig, ax = plt.subplots(figsize=(4, 10))
+        y = 0
+        for _, row in df[::-1].iterrows():
+            rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
+            ax.add_patch(rect)
+            ax.text(0.5, y + row['Thickness']/2, row['Lithology'], ha='center', va='center', fontsize=8)
+            y += row['Thickness']
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, y)
+        ax.axis('off')
+        buf = BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        buf.seek(0)
+        st.download_button("📥 Download Column Image", buf, "strat_column.png", mime="image/png")
+
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Download CSV", csv, "strat_data.csv", mime="text/csv")
+
 # Show redirect button if just uploaded
 # Removed auto-switch (deprecated). Use message below instead.
 if st.session_state.get('uploaded'):
