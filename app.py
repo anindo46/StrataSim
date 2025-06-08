@@ -58,9 +58,7 @@ facies_legend = {
 }
 
 # Tabs
-tab_names = ["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"]
-tabs = st.tabs(tab_names)
-tab1, tab2, tab3, tab4 = tabs
+tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
 
 # Show redirect button if just uploaded
 # Removed auto-switch (deprecated). Use message below instead.
@@ -116,12 +114,4 @@ with tab4:
         except Exception as e:
             st.error(f"Error reading file: {e}")
 
-# Footer credits
-st.markdown("""
----
-**Developed by Anindo Paul Sourav**  
-_Student, Geology and Mining, University of Barishal_  
-📧 Email: [anindo.glm@gmail.com](mailto:anindo.glm@gmail.com)  
-🌐 [Portfolio](https://anindo.netlify.app)  
-🐙 [GitHub](https://github.com/anindosourav)
-""")
+st.markdown("**Developed by Anindo Paul Sourav – Student, Geology and Mining, University of Barishal**")
