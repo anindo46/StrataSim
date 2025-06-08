@@ -110,7 +110,7 @@ with tab4:
                             'Notes': row.get('Notes', '')
                         })
                     st.success("✅ Layers successfully added from uploaded file!")
-st.session_state.uploaded = True
+                    st.session_state.uploaded = True
             else:
                 st.error(f"❌ Missing required columns. Please include: {required_columns}")
         except Exception as e:
