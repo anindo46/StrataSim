@@ -22,6 +22,7 @@ with st.sidebar.expander("ℹ️ How to Use"):
     2. View and manage them in 📊 Column tab.
     3. Export results from 📄 Export tab.
     4. Upload CSV data in 📁 Upload CSV tab.
+    Drag layers in 📊 Column tab to reorder.
     """)
 
 if theme == "Dark":
@@ -49,6 +50,11 @@ lithology_patterns = {
     "Limestone": "----",
     "Conglomerate": "xxxx",
     "Siltstone": "\\\\"
+}
+
+facies_legend = {
+    "Marine": "Shale, Limestone",
+    "Fluvial/Deltaic": "Sandstone, Conglomerate, Siltstone"
 }
 
 tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
@@ -112,6 +118,17 @@ with tab2:
         df = pd.DataFrame(st.session_state.layers)
         st.dataframe(df)
 
+        st.markdown("### 🧱 Drag to Reorder Layers")
+        moved_layer = st.selectbox("Select layer to move", options=[f"Layer {i+1}: {l['Lithology']}" for i, l in enumerate(st.session_state.layers)])
+        move_direction = st.radio("Move Layer", ["Up", "Down"])
+        if st.button("🔄 Apply Move"):
+            index = int(moved_layer.split()[1][:-1]) - 1
+            if move_direction == "Up" and index > 0:
+                st.session_state.layers[index], st.session_state.layers[index - 1] = st.session_state.layers[index - 1], st.session_state.layers[index]
+            elif move_direction == "Down" and index < len(st.session_state.layers) - 1:
+                st.session_state.layers[index], st.session_state.layers[index + 1] = st.session_state.layers[index + 1], st.session_state.layers[index]
+            st.experimental_rerun()
+
         col1, col2 = st.columns([3, 1])
         with col1:
             fig, ax = plt.subplots(figsize=(4, 10))
@@ -133,8 +150,8 @@ with tab2:
                     del st.session_state.layers[len(df)-i-1]
                     st.experimental_rerun()
 
-        # Mini column preview
-        fig_small, ax_small = plt.subplots(figsize=(2, 4))
+        # Mini column preview (smaller size)
+        fig_small, ax_small = plt.subplots(figsize=(1, 2))
         y = 0
         for _, row in df[::-1].iterrows():
             ax_small.add_patch(Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], '')))
@@ -145,50 +162,7 @@ with tab2:
         st.markdown("### 🔍 Mini Column Preview")
         st.pyplot(fig_small)
 
-with tab3:
-    st.subheader("Export Options")
-    if not st.session_state.layers:
-        st.warning("Add layers first.")
-    else:
-        df = pd.DataFrame(st.session_state.layers)
-        fig, ax = plt.subplots(figsize=(4, 10))
-        y = 0
-        for _, row in df[::-1].iterrows():
-            rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
-            ax.add_patch(rect)
-            ax.text(0.5, y + row['Thickness']/2, row['Lithology'], ha='center', va='center', fontsize=8)
-            y += row['Thickness']
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, y)
-        ax.axis('off')
-        buf = BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight")
-        buf.seek(0)
-        st.download_button("📥 Download Column Image", buf, "strat_column.png", mime="image/png")
-
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Download CSV", csv, "strat_data.csv", mime="text/csv")
-
-with tab4:
-    st.subheader("Upload CSV File")
-    uploaded_file = st.file_uploader("Upload a CSV file with stratigraphy data", type="csv")
-    if uploaded_file:
-        df_uploaded = pd.read_csv(uploaded_file)
-        required_cols = {"Lithology", "Color", "Grain Size", "Thickness"}
-        if required_cols.issubset(df_uploaded.columns):
-            st.dataframe(df_uploaded)
-            if st.button("📥 Add Layers from Uploaded CSV"):
-                for _, row in df_uploaded.iterrows():
-                    environment = "Marine" if row['Lithology'] in ["Shale", "Limestone"] else "Fluvial/Deltaic"
-                    st.session_state.layers.append({
-                        'Lithology': row['Lithology'],
-                        'Color': row['Color'],
-                        'Grain Size': row['Grain Size'],
-                        'Thickness': row['Thickness'],
-                        'Fossils': row.get('Fossils', ''),
-                        'Environment': environment,
-                        'Notes': row.get('Notes', '')
-                    })
-                st.success("CSV layers added successfully!")
-        else:
-            st.error(f"CSV must include these columns: {required_cols}")
+        # Facies legend
+        st.markdown("### 🧭 Facies Key")
+        for facies, desc in facies_legend.items():
+            st.markdown(f"**{facies}:** {desc}")
