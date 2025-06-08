@@ -62,8 +62,15 @@ tab_names = ["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"]
 tabs = st.tabs(tab_names)
 tab1, tab2, tab3, tab4 = tabs
 
-# Auto tab-switch logic removed to fix deprecation warning.
-# Will add buttons/links if you want manual navigation instead.
+# Show redirect button if just uploaded
+if st.session_state.get('uploaded'):
+    st.toast("Click '📊 Column' tab to view your data.", icon="✅")
+    if st.button("➡️ Go to Column Tab"):
+        st.switch_page("Column")
+
+# Manual tab-switch button
+if 'uploaded' not in st.session_state:
+    st.session_state.uploaded = False
 
 with tab4:
     st.subheader("📁 Upload Stratigraphy Data (CSV or Excel)")
@@ -103,7 +110,8 @@ with tab4:
                             'Environment': environment,
                             'Notes': row.get('Notes', '')
                         })
-                    st.success("✅ Layers successfully added from uploaded file! Go to 📊 Column tab to view them.")
+                    st.success("✅ Layers successfully added from uploaded file!")
+st.session_state.uploaded = True
             else:
                 st.error(f"❌ Missing required columns. Please include: {required_columns}")
         except Exception as e:
@@ -112,7 +120,6 @@ with tab4:
 # Footer credits
 st.markdown("""
 ---
-
 **Developed by Anindo Paul Sourav**  
 _Student, Geology and Mining, University of Barishal_  
 📧 Email: [anindo.glm@gmail.com](mailto:anindo.glm@gmail.com)  
