@@ -21,7 +21,7 @@ with st.sidebar.expander("ℹ️ How to Use"):
     1. Add or edit layers in the 📝 Input tab.
     2. View and manage them in 📊 Column tab.
     3. Export results from 📄 Export tab.
-    4. Upload CSV data in 📁 Upload CSV tab.
+    4. Upload CSV or Excel data in 📁 Upload CSV tab.
     Drag layers in 📊 Column tab to reorder.
     """)
 
@@ -57,112 +57,62 @@ facies_legend = {
     "Fluvial/Deltaic": "Sandstone, Conglomerate, Siltstone"
 }
 
-tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
+# Tabs
+with st.container():
+    tab1, tab2, tab3, tab4 = st.tabs(["📝 Input", "📊 Column", "📄 Export", "📁 Upload CSV"])
 
-with tab1:
-    st.subheader("Add or Edit a Stratigraphic Layer")
-    selected_index = st.selectbox("Select a layer to edit or delete", options=["None"] + [f"Layer {i+1}: {l['Lithology']} ({l['Thickness']}m)" for i, l in enumerate(st.session_state.layers)])
-    selected_layer = None
-    if selected_index != "None":
-        idx = int(selected_index.split()[1][:-1]) - 1
-        selected_layer = st.session_state.layers[idx]
-        st.session_state['selected_index'] = idx
-    else:
-        st.session_state['selected_index'] = None
+with tab4:
+    st.subheader("📁 Upload Stratigraphy Data (CSV or Excel)")
+    uploaded_file = st.file_uploader("Choose a file to upload", type=["csv", "xlsx"])
 
-    with st.form("layer_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            lithology = st.selectbox("Lithology", list(lithology_patterns.keys()), index=list(lithology_patterns.keys()).index(selected_layer['Lithology']) if selected_layer else 0)
-            color = st.color_picker("Color", value=selected_layer['Color'] if selected_layer else "#c2c2c2")
-            grain_size = st.selectbox("Grain Size", ["Fine", "Medium", "Coarse"], index=["Fine", "Medium", "Coarse"].index(selected_layer['Grain Size']) if selected_layer else 0)
-        with col2:
-            thickness = st.number_input("Thickness (m)", min_value=0.1, step=0.1, value=selected_layer['Thickness'] if selected_layer else 1.0)
-            fossils = st.text_input("Fossils", value=selected_layer['Fossils'] if selected_layer else "")
-            notes = st.text_area("Notes", value=selected_layer['Notes'] if selected_layer else "")
+    # Sample template download
+    sample_data = pd.DataFrame({
+        "Lithology": ["Sandstone", "Shale"],
+        "Color": ["#c2b280", "#5f5f5f"],
+        "Grain Size": ["Coarse", "Fine"],
+        "Thickness": [2.5, 1.2],
+        "Fossils": ["Plant fragments", "Fish scales"],
+        "Notes": ["Base layer", "Dark shale"]
+    })
+    csv_bytes = sample_data.to_csv(index=False).encode('utf-8')
+    st.download_button("📄 Download CSV Template", data=csv_bytes, file_name="strata_template.csv", mime="text/csv")
 
-        if st.form_submit_button("💾 Save Layer"):
-            environment = "Marine" if lithology in ["Shale", "Limestone"] else "Fluvial/Deltaic"
-            new_layer = {
-                'Lithology': lithology,
-                'Color': color,
-                'Grain Size': grain_size,
-                'Thickness': thickness,
-                'Fossils': fossils,
-                'Environment': environment,
-                'Notes': notes
-            }
-            if st.session_state['selected_index'] is not None:
-                st.session_state.layers[st.session_state['selected_index']] = new_layer
-                st.success("✅ Layer updated successfully!")
+    if uploaded_file is not None:
+        try:
+            if uploaded_file.name.endswith(".csv"):
+                df_uploaded = pd.read_csv(uploaded_file)
             else:
-                st.session_state.layers.append(new_layer)
-                st.success("✅ Layer added successfully!")
+                df_uploaded = pd.read_excel(uploaded_file)
 
-    if st.session_state['selected_index'] is not None:
-        if st.button("🗑️ Delete Selected Layer"):
-            del st.session_state.layers[st.session_state['selected_index']]
-            st.session_state['selected_index'] = None
-            st.success("❌ Layer deleted.")
-
-    if st.button("🧹 Clear All Layers"):
-        st.session_state.layers = []
-        st.session_state['selected_index'] = None
-        st.warning("All layers have been cleared.")
-
-with tab2:
-    st.subheader("Visualized Stratigraphic Column")
-    if not st.session_state.layers:
-        st.info("No layers to display.")
-    else:
-        df = pd.DataFrame(st.session_state.layers)
-        st.dataframe(df)
-
-        st.markdown("### 🧱 Drag to Reorder Layers")
-        moved_layer = st.selectbox("Select layer to move", options=[f"Layer {i+1}: {l['Lithology']}" for i, l in enumerate(st.session_state.layers)])
-        move_direction = st.radio("Move Layer", ["Up", "Down"])
-        if st.button("🔄 Apply Move"):
-            index = int(moved_layer.split()[1][:-1]) - 1
-            if move_direction == "Up" and index > 0:
-                st.session_state.layers[index], st.session_state.layers[index - 1] = st.session_state.layers[index - 1], st.session_state.layers[index]
-            elif move_direction == "Down" and index < len(st.session_state.layers) - 1:
-                st.session_state.layers[index], st.session_state.layers[index + 1] = st.session_state.layers[index + 1], st.session_state.layers[index]
-            st.experimental_rerun()
-
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            fig, ax = plt.subplots(figsize=(4, 10))
-            y = 0
-            for i, row in df[::-1].iterrows():
-                rect = Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], ''))
-                ax.add_patch(rect)
-                ax.text(0.5, y + row['Thickness']/2, row['Lithology'], ha='center', va='center', fontsize=8)
-                y += row['Thickness']
-            ax.set_xlim(0, 1)
-            ax.set_ylim(0, y)
-            ax.axis('off')
-            st.pyplot(fig)
-
-        with col2:
-            for i, layer in enumerate(df[::-1].to_dict(orient="records")):
-                st.markdown(f"**Layer {len(df)-i}:** {layer['Lithology']} ({layer['Thickness']}m)")
-                if st.button(f"❌ Delete Layer {len(df)-i}"):
-                    del st.session_state.layers[len(df)-i-1]
+            required_columns = {"Lithology", "Color", "Grain Size", "Thickness"}
+            if required_columns.issubset(df_uploaded.columns):
+                st.dataframe(df_uploaded)
+                if st.button("📥 Add Uploaded Layers"):
+                    for _, row in df_uploaded.iterrows():
+                        environment = "Marine" if row['Lithology'] in ["Shale", "Limestone"] else "Fluvial/Deltaic"
+                        st.session_state.layers.append({
+                            'Lithology': row['Lithology'],
+                            'Color': row['Color'],
+                            'Grain Size': row['Grain Size'],
+                            'Thickness': row['Thickness'],
+                            'Fossils': row.get('Fossils', ''),
+                            'Environment': environment,
+                            'Notes': row.get('Notes', '')
+                        })
+                    st.success("✅ Layers successfully added from uploaded file!")
+                    st.experimental_set_query_params(tab="Column")
                     st.experimental_rerun()
+            else:
+                st.error(f"❌ Missing required columns. Please include: {required_columns}")
+        except Exception as e:
+            st.error(f"Error reading file: {e}")
 
-        # Mini column preview (smaller size)
-        fig_small, ax_small = plt.subplots(figsize=(1, 2))
-        y = 0
-        for _, row in df[::-1].iterrows():
-            ax_small.add_patch(Rectangle((0, y), 1, row['Thickness'], facecolor=row['Color'], edgecolor='black', hatch=lithology_patterns.get(row['Lithology'], '')))
-            y += row['Thickness']
-        ax_small.set_xlim(0, 1)
-        ax_small.set_ylim(0, y)
-        ax_small.axis('off')
-        st.markdown("### 🔍 Mini Column Preview")
-        st.pyplot(fig_small)
-
-        # Facies legend
-        st.markdown("### 🧭 Facies Key")
-        for facies, desc in facies_legend.items():
-            st.markdown(f"**{facies}:** {desc}")
+# Footer credits
+st.markdown("""
+---
+**Developed by Anindo Paul Sourav**  
+_Student, Geology and Mining, University of Barishal_  
+📧 Email: anindo.glm@gmail.com  
+🌐 [Portfolio](https://anindo46.github.io/portfolio/)  
+🐙 [GitHub](https://github.com/anindo46)
+""")
