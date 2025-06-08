@@ -6,7 +6,6 @@ from io import BytesIO
 from PIL import Image
 import base64
 import os
-from fpdf import FPDF
 
 st.set_page_config(page_title="StrataSim", layout="wide", page_icon="🪨")
 
@@ -21,11 +20,10 @@ with st.sidebar.expander("ℹ️ How to Use"):
     st.markdown("""
     1. Go to 📝 Input tab and add layers.
     2. Go to 📊 Column tab to see the diagram.
-    3. Use 📄 Export to save as PNG or PDF.
+    3. Use 📄 Export to save as PNG or CSV.
     4. Or 📁 Upload CSV to batch-import layers.
     """)
 
-# Theme styling (visual aid only)
 if theme == "Dark":
     st.markdown("""
         <style>
@@ -132,19 +130,6 @@ with tab3:
 
         csv = df.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Download CSV", csv, "strat_data.csv", mime="text/csv")
-
-        # PDF Export
-        if st.button("📝 Download PDF Report"):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt="StrataSim Report", ln=True, align='C')
-            for i, row in df.iterrows():
-                line = f"{i+1}. {row['Lithology']} | {row['Grain Size']} | {row['Thickness']}m | {row['Environment']}"
-                pdf.cell(200, 10, txt=line, ln=True)
-            pdf_output = BytesIO()
-            pdf.output(pdf_output)
-            st.download_button("📥 Download PDF Report", data=pdf_output.getvalue(), file_name="strat_report.pdf", mime="application/pdf")
 
 with tab4:
     st.subheader("Upload CSV File")
