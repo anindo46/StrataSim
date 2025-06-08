@@ -88,11 +88,19 @@ with tab1:
 
 with tab2:
     st.subheader("📊 Stratigraphic Column")
+    if st.button("🧹 Clear All Layers"):
+        st.session_state.layers = []
+        st.success("All layers cleared.")
     if not st.session_state.layers:
         st.warning("No layers added yet.")
     else:
         df = pd.DataFrame(st.session_state.layers)
         st.dataframe(df)
+        selected_row = st.selectbox("Select a row to delete", df.index.tolist(), format_func=lambda i: f"{df.loc[i, 'Lithology']} ({df.loc[i, 'Thickness']}m)")
+        if st.button("❌ Delete Selected Row"):
+            st.session_state.layers.pop(selected_row)
+            st.success("Selected layer deleted.")
+            st.experimental_rerun()
         fig, ax = plt.subplots(figsize=(4, 10))
         y = 0
         for _, row in df[::-1].iterrows():
