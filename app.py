@@ -9,13 +9,31 @@ import os
 
 st.set_page_config(page_title="StrataSim", layout="wide", page_icon="🪨")
 
-# Sidebar and theme settings
-st.sidebar.title("⚙️ Settings")
-theme = st.sidebar.radio("Theme Mode", ["Light", "Dark"])
+# Header and title
+st.markdown("""
+    <style>
+    .main { background-color: #f0f2f6; }
+    </style>
+""", unsafe_allow_html=True)
 
-# Header
 st.title("🪨 StrataSim – Professional Stratigraphic Column Tool")
 st.caption("Build, interpret, and export stratigraphic sections with accuracy and ease.")
+
+# Sidebar and theme settings
+st.sidebar.title("⚙️ Settings")
+theme = st.sidebar.selectbox("Theme Mode (visual only)", ["Light", "Dark"])
+
+# Theme styling (visual only, doesn't change Streamlit native theme)
+if theme == "Dark":
+    st.markdown("""
+        <style>
+        body { background-color: #1e1e1e; color: #eeeeee; }
+        .stTextInput > div > div > input {
+            background-color: #333333;
+            color: white;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 # Initialize session state for layers
 if 'layers' not in st.session_state:
@@ -46,7 +64,7 @@ with tab1:
             fossils = st.text_input("Fossils")
             notes = st.text_area("Notes")
 
-        submitted = st.form_submit_button("Add Layer")
+        submitted = st.form_submit_button("➕ Add Layer")
 
         if submitted:
             environment = "Marine" if lithology in ["Shale", "Limestone"] else "Fluvial/Deltaic"
@@ -59,7 +77,12 @@ with tab1:
                 'Environment': environment,
                 'Notes': notes
             })
-            st.success("Layer added successfully!")
+            st.success("✅ Layer added successfully!")
+            st.markdown("⬆️ Check the '📊 Column' tab to view the updated stratigraphy.")
+
+    if st.button("🧹 Clear All Layers"):
+        st.session_state.layers = []
+        st.warning("All layers have been cleared.")
 
 with tab2:
     st.subheader("Visualized Stratigraphic Column")
@@ -90,7 +113,6 @@ with tab3:
         st.warning("Add layers first.")
     else:
         df = pd.DataFrame(st.session_state.layers)
-        # Export image
         fig, ax = plt.subplots(figsize=(4, 10))
         y = 0
         for _, row in df[::-1].iterrows():
@@ -106,7 +128,6 @@ with tab3:
         buf.seek(0)
         st.download_button("📥 Download Column Image", buf, "strat_column.png", mime="image/png")
 
-        # Export CSV
         csv = df.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Download CSV", csv, "strat_data.csv", mime="text/csv")
 
@@ -117,17 +138,19 @@ with tab4:
         df_uploaded = pd.read_csv(uploaded_file)
         required_cols = {"Lithology", "Color", "Grain Size", "Thickness"}
         if required_cols.issubset(df_uploaded.columns):
-            for _, row in df_uploaded.iterrows():
-                environment = "Marine" if row['Lithology'] in ["Shale", "Limestone"] else "Fluvial/Deltaic"
-                st.session_state.layers.append({
-                    'Lithology': row['Lithology'],
-                    'Color': row['Color'],
-                    'Grain Size': row['Grain Size'],
-                    'Thickness': row['Thickness'],
-                    'Fossils': row.get('Fossils', ''),
-                    'Environment': environment,
-                    'Notes': row.get('Notes', '')
-                })
-            st.success("Layers added from uploaded CSV.")
+            st.dataframe(df_uploaded)
+            if st.button("📥 Add Layers from Uploaded CSV"):
+                for _, row in df_uploaded.iterrows():
+                    environment = "Marine" if row['Lithology'] in ["Shale", "Limestone"] else "Fluvial/Deltaic"
+                    st.session_state.layers.append({
+                        'Lithology': row['Lithology'],
+                        'Color': row['Color'],
+                        'Grain Size': row['Grain Size'],
+                        'Thickness': row['Thickness'],
+                        'Fossils': row.get('Fossils', ''),
+                        'Environment': environment,
+                        'Notes': row.get('Notes', '')
+                    })
+                st.success("CSV layers added successfully!")
         else:
             st.error(f"CSV must include these columns: {required_cols}")
