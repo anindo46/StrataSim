@@ -38,6 +38,7 @@ if theme == "Dark":
 
 st.title("🪨 StrataSim – Professional Stratigraphic Column Tool")
 st.caption("Build, interpret, and export stratigraphic sections with accuracy and ease.")
+st.markdown("<span style='font-size: 14px; color: gray;'>Developed by Anindo Paul Sourav – Student, Geology and Mining, University of Barishal</span>", unsafe_allow_html=True)
 
 if 'layers' not in st.session_state:
     st.session_state['layers'] = []
@@ -192,4 +193,4 @@ with tab4:
         except Exception as e:
             st.error(f"Error reading file: {e}")
 
-st.markdown("**Developed by Anindo Paul Sourav – Student, Geology and Mining, University of Barishal**")
+
